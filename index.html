@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cafe-latte">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabula Student Workspace</title>
+  <link rel="manifest" href="manifest.json">
+  <link href="https://googleapis.com" rel="stylesheet">
+  
+  <style>
+    /* --- COLOR PALETTE THEMES (Cozy Cafe Aesthetics) --- */
+    [data-theme="cafe-latte"] {
+      --bg-app: #fdfaf6;          /* Warm Milk Foam Cream */
+      --bg-card: #ffffff;         /* Fresh Ceramic Mug White */
+      --text-main: #3d342e;       /* Roasted Coffee Beans Brown */
+      --text-muted: #8c7e74;      /* Cinnamon Dust Accent */
+      --accent: #b08e75;          /* Warm Caramel Sauce */
+      --accent-hover: #98755d;
+      --border: rgba(140, 126, 116, 0.15);
+      --shadow: 0 8px 30px rgba(61, 52, 46, 0.04);
+    }
+
+    [data-theme="midnight-espresso"] {
+      --bg-app: #12100e;          /* Rich Black Espresso */
+      --bg-card: #1c1816;         /* Roasted Dark Cocoa Bean */
+      --text-main: #f3ece7;       /* Steamed Cream Foam White */
+      --text-muted: #a3958c;      /* Soft Coffee Steam Gray */
+      --accent: #cca585;          /* Sweet Toasted Almond Gold */
+      --accent-hover: #e0be9f;
+      --border: rgba(243, 236, 231, 0.08);
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', system-ui, sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+    body {
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      padding: 1rem;              /* Reduced from 2rem to save space on mobile portrait layout */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;         /* Enforces zero horizontal scroll breaking */
+      width: 100%;
+    }
+
+    .header-container {
+      width: 100%;
+      max-width: 750px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      gap: 0.5rem;
+    }
+
+    /* Fixed breaking layout for mobile navigation headers */
+    @media (max-width: 480px) {
+      .header-container {
+        flex-direction: column;   /* Stacks title above options nicely if space runs tight */
+        gap: 0.75rem;
+        text-align: center;
+      }
+    }
+
+    h1 {
+      font-size: 1.35rem;         /* Slightly smaller default for better narrow mobile fit */
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    .control-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    select, button {
+      background-color: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      outline: none;
+      box-shadow: var(--shadow);
+    }
+
+    select:hover, button:hover {
+      border-color: var(--accent);
+    }
+
+    .workspace-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 750px;
+    }
+
+    .workspace-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.25rem;          /* Smoothed boundary padding for vertical orientation */
+      box-shadow: var(--shadow);
+      width: 100%;
+    }
+
+    .input-display {
+      width: 100%;
+      padding: 1rem;
+      border-radius: 12px;
+      background-color: var(--bg-app);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      outline: none;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      width: 100%;
+    }
+
+    /* Fixed structural breakdown for phone book forms */
+    @media (max-width: 500px) {
+      .form-row {
+        flex-direction: column;   /* Force input rows into stack cards to avoid offscreen squeeze */
+        gap: 0.5rem;
+      }
+    }
+
+    .form-row input {
+      flex: 1;
+      width: 100%;                /* Full block stretching */
+      padding: 0.75rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      outline: none;
+    }
+
+    .btn-action {
+      background-color: var(--accent);
+      color: white !important;
+      border: none;
+      width: 100%;                /* Standardized button alignment width */
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      display: block;             /* Allows smooth block formatting on small viewports */
+      overflow-x: auto;           /* Permits sliding inside the specific table if text content overflows */
+    }
+
+    .data-table th, .data-table td {
+      padding: 0.75rem 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    html[dir="rtl"] .data-table th, html[dir="rtl"] .data-table td {
+      text-align: right;
+    }
+
+    .branding-footer {
+      margin-top: 3rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* Container for the keyboard grid matching the card background */
+    .keyboard-grid {
+      background-color: #231F1D; /* Dark card color from your phonebook/ledger containers */
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid #38322E;
+    }
+
+    /* Individual character row layout */
+    .keyboard-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Base key theme matching your input fields and dark backgrounds */
+    .key {
+      background-color: #1A1614; /* Deep dark input background */
+      color: #FFFFFF; /* High contrast crisp white text */
+      border: 1px solid #38322E; /* Subtle dark divider border */
+      padding: 0.6rem 1rem;
+      margin: 0.25rem;
+      cursor: pointer;
+      font-family: sans-serif;
+      font-weight: bold;
+      border-radius: 6px;
+      user-select: none;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+
+    /* Hover/active state feedback for dark keys */
+    .key:hover {
+      background-color: #2D2724;
+    }
+    .key:active {
+      transform: scale(0.95);
+    }
+
+    /* Warm Accent theme specifically for your action buttons (SAVE, SPACE, etc.) */
+    .save-key {
+      background-color: #DDB696 !important; /* Perfect match to your "Add" and "Save Contact" buttons */
+      color: #1A1614 !important; /* Dark text inside the light button for clean contrast */
+      border: none !important;
+      width: 100%;
+      max-width: 240px;
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+
+    .save-key:hover {
+      background-color: #CBA384 !important; /* Soft darker peach on hover */
+    }
+    
+  </style>
+</head>
+<body>
+
+  <div class="header-container">
+      <h1 id="app-title">☕ Tabula SchoolBud</h1>
+        <div class="control-group">
+          <select id="lang-selector" onchange="handleLanguageChange(this.value)">
+            <option value="en">English (LTR)</option>
+            <option value="ar">العربية (RTL)</option>
+            <option value="hi">हिन्दी (LTR)</option>
+          </select>
+            <button onclick="toggleCafeTheme()">☕ Theme</button>
+        </div>
+  </div>
+
+  <div class="workspace-grid">
+    <!-- VIRTUAL KEYBOARD WIDGET -->
+    <div class="workspace-card">
+      <input type="text" id="keyboard-output" class="input-display" placeholder="Click form inputs, then type here..." />
+      <div id="keyboard-container" class="keyboard-grid"></div>
+    </div>
+
+    <!-- STICKY NOTES CANVAS MODULE -->
+    <div class="workspace-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 id="sticky-title">Customizable Sticky Notes</h3>
+        <button class="btn-action" style="padding: 0.4rem 0.8rem; border-radius: 8px;" onclick="createNewNote()">+ New Note</button>
+      </div>
+    <div id="sticky-board" style="position: relative; width: 100%; min-height: 250px; background-color: var(--bg-app); border: 1px dashed var(--border); border-radius: 12px; overflow: hidden;">
+    <!-- Notes will be injected dynamically here -->
+  </div>
+</div>
+
+    <!-- DAILY SCHOOL EXPENSES LEDGER -->
+    <div class="workspace-card">
+  <h3>Daily Expenses Ledger</h3>
+  
+  <!-- Make sure your input fields have these specific IDs matching the JavaScript -->
+  <input type="text" id="expense-item" placeholder="Item Name (e.g., Coffee)" class="input-display" style="margin-bottom:0.5rem;" />
+  <input type="number" id="expense-amount" placeholder="Cost (e.g., 5.00)" class="input-display" style="margin-bottom:0.5rem;" />
+  
+  <!-- Add button links directly to our fixed function on click -->
+  <button onclick="addExpense()" class="key save-key" style="max-width:100%; width:100%;">Add Item</button>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Cost</th>
+      </tr>
+    </thead>
+    <!-- The script inserts list rows directly into this body element container -->
+    <tbody id="ledger-body"></tbody>
+  </table>
+  
+  <div>Total: <span id="total-value">$0.00</span></div>
+  
+  <!-- Sleek professional button to export your ledger records -->
+  <button onclick="saveLedgerToDownloads()" class="key" style="margin-top:1rem; border:1px solid #DDB696; color:#DDB696; background:transparent;">Download Ledger Report</button>
+</div>
+
+
+    <!-- STUDENT CONTACT PHONEBOOK REGISTRY -->
+<div class="workspace-card">
+  <h3 id="phonebook-title" style="margin-bottom: 1rem;">Student Phonebook</h3>
+  <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">
+    <input type="text" id="contact-name" placeholder="Name" onfocus="setActiveInput(this)">
+    <input type="text" id="contact-phone" placeholder="Mobile Number" onfocus="setActiveInput(this)">
+    <input type="text" id="contact-email" placeholder="Email Address" onfocus="setActiveInput(this)">
+    <input type="text" id="contact-address" placeholder="Address" onfocus="setActiveInput(this)">
+  </div>
+  <button class="btn-action" style="width:100%; padding:0.75rem; border-radius:10px; margin-top:1rem;" onclick="addContact()">Save Contact Entry</button>
+
+      <table class="data-table" style="margin-top:1.5rem;">
+        <thead>
+          <tr>
+            <th id="th-pname">Name</th>
+            <th id="th-pphone">Details</th>
+          </tr>
+        </thead>
+        <tbody id="phonebook-body"></tbody>
+      </table>
+    </div>
+
+    <!-- SCIENTIFIC CALCULATOR MODULE -->
+    <div class="workspace-card">
+      <h3 style="margin-bottom: 1rem;">Scientific Calculator</h3>
+      <input type="text" id="calc-screen" class="input-display" placeholder="0" style="text-align: right;" readonly />
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem;">
+        <button onclick="pressCalc('sin')">sin</button><button onclick="pressCalc('cos')">cos</button><button onclick="pressCalc('tan')">tan</button><button onclick="pressCalc('sqrt')">√</button><button class="btn-action" onclick="pressCalc('C')">C</button>
+        <button onclick="pressCalc('7')">7</button><button onclick="pressCalc('8')">8</button><button onclick="pressCalc('9')">9</button><button onclick="pressCalc('/')">/</button><button onclick="pressCalc('(')">(</button>
+        <button onclick="pressCalc('4')">4</button><button onclick="pressCalc('5')">5</button><button onclick="pressCalc('6')">6</button><button onclick="pressCalc('*')">*</button><button onclick="pressCalc(')')">)</button>
+        <button onclick="pressCalc('1')">1</button><button onclick="pressCalc('2')">2</button><button onclick="pressCalc('3')">3</button><button onclick="pressCalc('-')">-</button><button onclick="pressCalc('^')">^</button>
+        <button onclick="pressCalc('0')">0</button><button onclick="pressCalc('.')">.</button><button onclick="pressCalc('pi')">π</button><button onclick="pressCalc('+')">+</button><button class="btn-action" onclick="pressCalc('=')">=</button>
+      </div>
+    </div>
+
+    <!-- LOCALIZED CALENDAR MODULE -->
+    <div class="workspace-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 id="calendar-month-year">September 2026</h3>
+        <div>
+          <button onclick="changeMonth(-1)">&larr;</button>
+          <button onclick="changeMonth(1)">&rarr;</button>
+        </div>
+      </div>
+      <div id="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; text-align: center;"></div>
+    </div>
+  </div>
+
+  <footer class="branding-footer">
+    &copy; TABULA 2026 | by: LogicMinds Technologies, Inc.
+  </footer>
+  <script>
+    const KEYBOARD_LAYOUTS = {
+      en: [["q","w","e","r","t","y","u","i","o","p"], ["a","s","d","f","g","h","j","k","l"], ["z","x","c","v","b","n","m","⌫"]],
+      ar: [["ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج"], ["ش","س","ي","ب","ل","ا","ت","ن","م","ك"], ["ئ","ء","ؤ","ر","لا","ى","ة","و","⌫"]],
+      hi: [["ौ","ै","ा","ी","ू","ब","ह","ग","द","ज"], ["ो","े","्","ि","ु","प","र","क","त","च"], ["ं","म","न","व","ल","स","य","⌫"]]
+    };
+
+    const TRANSLATIONS = {
+      en: { title: "☕ Tabula Workspace", ledger: "Daily Expenses Ledger", item: "Expense Item Name", cost: "Cost", thItem: "Item", thCost: "Cost", total: "Total:", pbTitle: "Student Phonebook", pName: "Name", pPhone: "Mobile Number", pEmail: "Email Address", pAddr: "Address", stickyTitle: "Customizable Sticky Notes" },
+      ar: { title: "☕ مساحة تابلولا", ledger: "دفتر المصاريف اليومية", item: "اسم المصروف", cost: "التكلفة", thItem: "البند", thCost: "التكلفة", total: "الإجمالي:", pbTitle: "دليل الهاتف", pName: "الاسم", pPhone: "رقم الهاتف", pEmail: "البريد الإلكتروني", pAddr: "العنوان", stickyTitle: "ملاحظات لاصقة قابلة للتخصيص" },
+      hi: { title: "☕ ताबुला वर्कस्पेस", ledger: "दैनिक व्यय बही", item: "व्यय वस्तु का नाम", cost: "लागत", thItem: "वस्तु", thCost: "लागत", total: "कुल:", pbTitle: "छात्र फोनबुक", pName: "नाम", pPhone: "मोबाइल नंबर", pEmail: "ईमेल पता", pAddr: "पता", stickyTitle: "कस्टमाइज़ेबल स्टिकी नोट्स" }
+    };
+
+    let activeInputField = null;
+    let currentLang = 'en';
+    let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    let contacts = JSON.parse(localStorage.getItem('contacts')) || [];
+    let currentDate = new Date(); // Tracks the currently viewed month/year
+
+    function setActiveInput(el) { activeInputField = el; }
+
+    function handleKeyStroke(char) {
+      let target = activeInputField || document.getElementById('keyboard-output');
+      if (char === '⌫') {
+        target.value = target.value.slice(0, -1);
+      } else {
+        target.value += char;
+      }
+    }
+
+function renderKeyboard(lang) {
+  const container = document.getElementById('keyboard-container');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  // 1. Render standard layout rows (Loops through nested row arrays)
+  KEYBOARD_LAYOUTS[lang].forEach(row => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'keyboard-row';
+    row.forEach(char => {
+      const btn = document.createElement('div');
+      btn.className = 'key';
+      btn.innerText = char;
+      btn.onclick = () => handleKeyStroke(char);
+      rowDiv.appendChild(btn);
+    });
+    container.appendChild(rowDiv);
+  });
+
+  // 2. Clear old action rows to prevent element stacking
+  const oldActionRow = document.getElementById('tabula-action-row');
+  if (oldActionRow) oldActionRow.remove();
+
+  // 3. Integrated Action Row (Houses both the Spacebar and the Save Button)
+  const actionRow = document.createElement('div');
+  actionRow.className = 'keyboard-row';
+  actionRow.id = 'tabula-action-row';
+  // Enforce flexible row styling so elements sit side-by-side gracefully
+  actionRow.style.display = 'flex';
+  actionRow.style.gap = '0.5rem';
+  actionRow.style.width = '100%';
+
+  // Sleek, professional Black-and-White SPACE BAR
+  const spaceBtn = document.createElement('div');
+  spaceBtn.className = 'key space-key';
+  spaceBtn.innerText = '[ ___ ]'; // Sleek line icon text matching user design requirements
+  spaceBtn.style.flex = '3';       // Gives the space bar structural stretching priority
+  spaceBtn.style.textAlign = 'center';
+  spaceBtn.style.cursor = 'pointer';
+  spaceBtn.onclick = () => handleKeyStroke(' '); // Sends a literal empty space string
+  
+  // Sleek, professional Black-and-White SAVE Button
+  const saveBtn = document.createElement('div');
+  saveBtn.className = 'key save-key';
+  saveBtn.innerText = 'SAVE'; 
+  saveBtn.style.flex = '1';        // Keeps the save button compact and proportional
+  saveBtn.style.textAlign = 'center';
+  saveBtn.style.cursor = 'pointer';
+  saveBtn.onclick = () => executeTabulaFileExport();
+
+  // Append items sequentially into the bottom operational row workflow
+  actionRow.appendChild(spaceBtn);
+  actionRow.appendChild(saveBtn);
+  container.appendChild(actionRow);
+}
+
+// Completely renamed, independent file saving routine
+function executeTabulaFileExport() {
+  const inputDisplay = document.getElementById('keyboard-output');
+  
+  if (!inputDisplay || inputDisplay.value.trim() === '') {
+    alert('Please write something before saving!');
+    return;
+  }
+
+  const textToSave = inputDisplay.value;
+
+  // Generate date and time elements live
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0'); 
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+
+  // Hardcoded structure ensures this custom filename pattern executes directly
+  const timestamp = `${year}${month}${day}-${hours}${minutes}${seconds}`;
+  const customFileName = `TABULA-Message-${timestamp}.txt`;
+
+  // Create document object download download package
+  const blob = new Blob([textToSave], { type: 'text/plain;charset=utf-8' });
+  const downloadLink = document.createElement('a');
+  
+  downloadLink.href = URL.createObjectURL(blob);
+  downloadLink.download = customFileName; 
+  
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  
+  // Clean up hidden DOM resources instantly
+  document.body.removeChild(downloadLink);
+  URL.revokeObjectURL(downloadLink.href);
+}
+
+
+// Run this right away to load any previously stored expenses when the page opens
+document.addEventListener('DOMContentLoaded', () => {
+  updateLedgerUI();
+});
+
+function addExpense() {
+  const itemEl = document.getElementById('expense-item');
+  const amountEl = document.getElementById('expense-amount');
+  
+  // Safety check: ensure the elements actually exist on your page
+  if (!itemEl || !amountEl) {
+    console.error("Error: Make sure your inputs have id='expense-item' and id='expense-amount'");
+    return;
+  }
+
+  // Stop if fields are empty
+  if (!itemEl.value.trim() || !amountEl.value.trim()) return;
+
+  const parsedAmount = parseFloat(amountEl.value);
+  if (isNaN(parsedAmount)) {
+    alert("Please enter a valid number for the cost.");
+    return;
+  }
+
+  // Push new entry into our initialized array
+  expenses.push({ item: itemEl.value.trim(), amount: parsedAmount });
+  localStorage.setItem('expenses', JSON.stringify(expenses));
+
+  // PWA Background Sync Flag registration rewritten safely so it doesn't freeze your inputs
+  if ('serviceWorker' in navigator && 'SyncManager' in navigator) {
+    navigator.serviceWorker.ready.then((registration) => {
+      return registration.sync.register('sync-tabula-data');
+    }).then(() => {
+      console.log('📡 Tabula Sync Flag successfully registered with the OS manager.');
+    }).catch((err) => {
+      console.warn('Sync registration deferred:', err);
+    });
+  }
+
+  // Clear inputs and instantly draw the updated rows
+  itemEl.value = ''; 
+  amountEl.value = '';
+  updateLedgerUI();
+}
+
+function updateLedgerUI() {
+  const tbody = document.getElementById('ledger-body');
+  const totalValueEl = document.getElementById('total-value');
+  
+  if (!tbody) return; // Prevent break if markup hasn't loaded
+  
+  tbody.innerHTML = ''; 
+  let total = 0;
+  
+  expenses.forEach(e => { 
+    total += e.amount; 
+    tbody.innerHTML += `<tr><td>${e.item}</td><td>$${e.amount.toFixed(2)}</td></tr>`; 
+  });
+  
+  if (totalValueEl) {
+    totalValueEl.innerText = `$${total.toFixed(2)}`;
+  }
+}
+
+// 2. EXCLUSIVE FEATURE: Exports your ledger details cleanly with a Timestamp
+function saveLedgerToDownloads() {
+  if (expenses.length === 0) {
+    alert('Your ledger is currently empty! Add some items first.');
+    return;
+  }
+
+  // Format the ledger entries into a structured table text layout
+  let fileContent = `===============================\n`;
+  fileContent += `    TABULA DAILY EXPENSES      \n`;
+  fileContent += `===============================\n\n`;
+  fileContent += `ITEM                    COST\n`;
+  fileContent += `-------------------------------\n`;
+  
+  let total = 0;
+  expenses.forEach(e => {
+    total += e.amount;
+    // Left-aligns item name and pad space for cost layout consistency
+    const itemLabel = e.item.padEnd(23, ' ');
+    fileContent += `${itemLabel}$${e.amount.toFixed(2)}\n`;
+  });
+  
+  fileContent += `-------------------------------\n`;
+  fileContent += `TOTAL:                 $${total.toFixed(2)}\n`;
+
+  // Generate date and time parameters for the unique file name
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0'); 
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+
+  const timestamp = `${year}${month}${day}-${hours}${minutes}${seconds}`;
+  const fileName = `TABULA-Ledger-${timestamp}.txt`;
+
+  // Push download directly into device Downloads directory
+  const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+  const downloadLink = document.createElement('a');
+  
+  downloadLink.href = URL.createObjectURL(blob);
+  downloadLink.download = fileName; 
+  
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+  URL.revokeObjectURL(downloadLink.href);
+}
+
+let activeInput = null;
+
+function setActiveInput(inputElement) {
+    activeInput = inputElement;
+}
+    function addContact() {
+      const name = document.getElementById('contact-name'); const phone = document.getElementById('contact-phone');
+      const email = document.getElementById('contact-email'); const addr = document.getElementById('contact-address');
+      if(!name.value || !phone.value) return;
+      contacts.push({ name: name.value, phone: phone.value, email: email.value, addr: addr.value });
+      localStorage.setItem('contacts', JSON.stringify(contacts));
+      name.value = ''; phone.value = ''; email.value = ''; addr.value = '';
+      updatePhonebookUI();
+    }
+
+    function updatePhonebookUI() {
+      const tbody = document.getElementById('phonebook-body'); tbody.innerHTML = '';
+      contacts.forEach(c => { tbody.innerHTML += `<tr><td><strong>${c.name}</strong></td><td>📞 ${c.phone}<br>✉️ ${c.email}<br>📍 ${c.addr}</td></tr>`; });
+    }
+
+    let calcExpression = "";
+    function pressCalc(val) {
+      const screen = document.getElementById('calc-screen');
+      if (val === 'C') { calcExpression = ""; screen.value = "0"; }
+      else if (val === '=') {
+        try {
+          let mathBlock = calcExpression.replace(/sin/g, "Math.sin").replace(/cos/g, "Math.cos").replace(/tan/g, "Math.tan").replace(/sqrt/g, "Math.sqrt").replace(/pi/g, "Math.PI").replace(/\^/g, "**");
+          let outcome = Function('"use strict"; return (' + mathBlock + ')')();
+          screen.value = Number.isInteger(outcome) ? outcome : outcome.toFixed(4);
+          calcExpression = screen.value;
+        } catch (e) { screen.value = "Error"; calcExpression = ""; }
+      } else { calcExpression += val; screen.value = calcExpression; }
+    }
+
+    function renderCalendar() {
+  const grid = document.getElementById('calendar-grid');
+  const label = document.getElementById('calendar-month-year');
+  
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  // Dynamically update the header text (e.g., "October 2026")
+  label.innerText = new Intl.DateTimeFormat(currentLang, { month: 'long', year: 'numeric' }).format(currentDate);
+
+  grid.innerHTML = '';
+
+  // Render Weekday Labels
+  for (let i = 0; i < 7; i++) {
+    let dDay = new Date(2026, 8, 20 + i); // Reference row for labels
+    grid.innerHTML += `<div style="font-weight:600; color:var(--accent);">${new Intl.DateTimeFormat(currentLang, { weekday: 'short' }).format(dDay)}</div>`;
+  }
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  const today = new Date(); // Real live clock baseline
+
+  // Padding days for previous month offsets
+  for (let i = 0; i < firstDay; i++) {
+    grid.innerHTML += `<div></div>`;
+  }
+
+  // Render Days of the Month dynamically
+  for (let day = 1; day <= totalDays; day++) {
+    // True verification condition against the actual live system clock
+    const isToday = (day === today.getDate() && month === today.getMonth() && year === today.getFullYear());
+    
+    const styleStr = isToday 
+      ? `style="padding: 0.5rem; background-color: var(--accent); color: white; border-radius: 8px; font-weight: bold;"` 
+      : `style="padding: 0.5rem;"`;
+
+    grid.innerHTML += `<div ${styleStr}>${day}</div>`;
+  }
+}
+
+function changeMonth(dir) {
+  currentDate.setMonth(currentDate.getMonth() + dir);
+  renderCalendar();
+}
+
+
+    function handleLanguageChange(lang) {
+      currentLang = lang; document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+      ['title','ledger','expense-item','expense-amount','th-item','th-cost','td-total','phonebook-title','contact-name','contact-phone','contact-email','contact-address'].forEach(id => {
+        let tKey = id.replace('expense-','').replace('th-','').replace('td-','').replace('contact-','p').replace('-title','Title').replace('item','Item').replace('amount','cost').replace('phonebook','pb');
+        if(document.getElementById(id).placeholder !== undefined) document.getElementById(id).placeholder = TRANSLATIONS[lang][tKey] || TRANSLATIONS[lang][id.split('-')[1]] || '';
+        else document.getElementById(id).innerText = TRANSLATIONS[lang][tKey] || TRANSLATIONS[lang][id.split('-')[1]] || '';
+      });
+      document.getElementById('sticky-title').innerText = TRANSLATIONS[lang].stickyTitle;
+
+      renderKeyboard(lang); renderCalendar(); 
+    }
+
+    function toggleCafeTheme() {
+      const html = document.documentElement;
+      html.setAttribute('data-theme', html.getAttribute('data-theme') === 'cafe-latte' ? 'midnight-espresso' : 'cafe-latte');
+    }
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").catch(err => console.log(err)); });
+    }
+
+    renderKeyboard('en'); updateLedgerUI(); updatePhonebookUI(); renderCalendar();
+
+    // --- STICKY NOTES CANVAS LOCALSTORAGE ENGINE ---
+let notes = JSON.parse(localStorage.getItem('tabula-notes')) || [];
+
+function createNewNote(text = "Tap here to edit...", color = "#fff9db", left = 20, top = 20) {
+  const id = 'note-' + Date.now() + Math.random().toString(36).substr(2, 5);
+  const noteObj = { id, text, color, left, top };
+  notes.push(noteObj);
+  saveNotes();
+  renderNoteElement(noteObj);
+}
+
+function renderNoteElement(note) {
+  const board = document.getElementById('sticky-board');
+  const noteEl = document.createElement('div');
+  
+  noteEl.id = note.id;
+  noteEl.style.cssText = `position: absolute; left: ${note.left}px; top: ${note.top}px; width: 140px; min-height: 110px; background-color: ${note.color}; padding: 0.75rem; box-shadow: 0 4px 10px rgba(0,0,0,0.06); border-radius: 8px; cursor: move; color: #333; font-size: 0.85rem; border: 1px solid rgba(0,0,0,0.04); display: flex; flex-direction: column; justify-content: space-between;`;
+  
+  // Editable text wrapper element
+  const textArea = document.createElement('div');
+  textArea.contentEditable = true;
+  textArea.innerText = note.text;
+  textArea.style.outline = 'none';
+  textArea.oninput = (e) => {
+    const idx = notes.findIndex(n => n.id === note.id);
+    if(idx !== -1) { notes[idx].text = e.target.innerText; saveNotes(); }
+  };
+  
+  // Note actions utility drawer footer
+  const footer = document.createElement('div');
+  footer.style.cssText = `display: flex; justify-content: space-between; font-size: 0.7rem; color: #888; margin-top: 0.5rem; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 0.25rem;`;
+  
+  // Color shifting cycle controller link trigger toggle buttons
+  const colorBtn = document.createElement('span');
+  colorBtn.innerText = "🎨 Color";
+  colorBtn.style.cursor = "pointer";
+  colorBtn.onclick = () => {
+    const palette = ["#fff9db", "#e7f5ff", "#ebfbee", "#fff0f6"];
+    const currentIdx = palette.indexOf(note.color);
+    const nextColor = palette[(currentIdx + 1) % palette.length];
+    note.color = nextColor;
+    noteEl.style.backgroundColor = nextColor;
+    const idx = notes.findIndex(n => n.id === note.id);
+    if(idx !== -1) { notes[idx].color = nextColor; saveNotes(); }
+  };
+
+  const deleteBtn = document.createElement('span');
+  deleteBtn.innerText = "❌ Delete";
+  deleteBtn.style.cursor = "pointer";
+  deleteBtn.onclick = () => {
+    notes = notes.filter(n => n.id !== note.id);
+    saveNotes();
+    noteEl.remove();
+  };
+
+  footer.appendChild(colorBtn);
+  footer.appendChild(deleteBtn);
+  noteEl.appendChild(textArea);
+  noteEl.appendChild(footer);
+  
+  // HTML5 Drag and Drop Mouse Tracking Hooks Setup Execution
+  noteEl.onmousedown = function(event) {
+    if (event.target.contentEditable === "true" || event.target.tagName === "SPAN") return;
+    
+    let shiftX = event.clientX - noteEl.getBoundingClientRect().left;
+    let shiftY = event.clientY - noteEl.getBoundingClientRect().top;
+    
+    function moveAt(clientX, clientY) {
+      let boardRect = board.getBoundingClientRect();
+      let newLeft = clientX - boardRect.left - shiftX;
+      let newTop = clientY - boardRect.top - shiftY;
+      
+      // Keep boundaries locked cleanly inside workspace block container parameters
+      newLeft = Math.max(0, Math.min(newLeft, boardRect.width - 140));
+      newTop = Math.max(0, Math.min(newTop, boardRect.height - 110));
+      
+      noteEl.style.left = newLeft + 'px';
+      noteEl.style.top = newTop + 'px';
+      
+      const idx = notes.findIndex(n => n.id === note.id);
+      if(idx !== -1) { notes[idx].left = newLeft; notes[idx].top = newTop; saveNotes(); }
+    }
+    
+    function onMouseMove(event) { moveAt(event.clientX, event.clientY); }
+    document.addEventListener('mousemove', onMouseMove);
+    
+    document.onmouseup = function() {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.onmouseup = null;
+    };
+  };
+
+  noteEl.ondragstart = () => false; // Disable baseline browser rendering friction interference
+  board.appendChild(noteEl);
+}
+
+function saveNotes() { localStorage.setItem('tabula-notes', JSON.stringify(notes)); }
+function initNotes() { notes.forEach(renderNoteElement); }
+
+// Important: Add "initNotes();" to your runtime initialization context sequence at the absolute bottom of Part 5!
+
+  </script>
+  
+
+</body>
+</html>
